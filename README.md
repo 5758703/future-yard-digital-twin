@@ -86,3 +86,8 @@ docs/验收记录.md              自动化检查与浏览器验收记录
 这是完整可运行的前端模拟演示工程，并非接好真实设备的生产物联网平台。真实测绘模型、视频流、人员定位、暖通协议、天气预测、身份权限和服务端审计需对接实际系统；接口契约见 [接入与数据规范](docs/接入与数据规范.md)。默认 UI 始终显示“模拟数据”。
 
 页面字体优先使用 Noto Sans SC / Space Grotesk；离线时自动使用系统中文字体，核心运行不依赖外部字体服务。所有状态可从当前浏览器保留，适用于单机演示；不同浏览器之间不自动同步。
+
+## Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=5758703/future-yard-digital-twin&type=Date)](https://star-history.com/#5758703/future-yard-digital-twin&Date)
+
+
