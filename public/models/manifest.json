@@ -1,0 +1,9 @@
+{
+  "source": "Three.js parameterized export, editable in Blender",
+  "units": "meters",
+  "coordinateSystem": "LOCAL_METERS_Y_UP",
+  "buildings": 6,
+  "floors": 37,
+  "rooms": 296,
+  "model": "future-yard.glb"
+}
