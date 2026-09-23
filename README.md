@@ -4,6 +4,14 @@
 
 6 栋楼宇、37 层、296 间房间、2,072 台房间设备，包含行政办公、研发办公、人才公寓与服务/能源中心。所有空间、遥测、人员、天气和视频示意均为模拟数据。无需后端即可完整演示空间钻取和运维业务。
 
+
+
+https://github.com/user-attachments/assets/a69c5f0f-ad80-40a6-984d-e992a76f1e7a
+
+
+
+
+
 <img width="1920" height="910" alt="image" src="https://github.com/user-attachments/assets/7b46d33a-27f9-419d-b04f-0587c42e69c3" />
 
 <img width="1920" height="910" alt="image" src="https://github.com/user-attachments/assets/853fa67a-368a-4983-bc8c-9373862aca84" />
