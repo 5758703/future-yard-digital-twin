@@ -31,6 +31,11 @@ npm run preview
 6. **能源管理**：水电曲线、实时楼栋负荷排行、对无人房间应用节能模拟策略。
 7. **明厨亮灶 / 公共设施**：后厨空间、模拟视频、冷藏/燃气监测，以及设备台账和维护计划。
 8. **疏散推演**：从房间生成到运动场集合点的路径，支持东侧楼梯封堵和备用路线。仅供示意演示。
+9. **通勤动画**：院区/楼栋视图默认显示 16 辆车和 24 个行人角色。车辆沿环路中心线两侧、按右侧通行方向对向行驶；行人沿独立人行道进出行政办公楼和研发办公楼，带摆臂迈步与感应门。选择“上班 / 下班 / 双向通勤”，支持暂停和 1× / 2× / 4× 倍速；点击“入口”观察近景，“重置视角”返回。进入楼层或疏散视图时隐藏并冻结通勤，返回后继续。
+
+通勤为独立的演示动画，不会修改房间人数、访客或告警业务数据。24 人指角色池规模；人物在楼内停留和循环间隔时隐藏，因此屏幕可见人数会变化。车辆模拟速度为 5 m/s，行人为 1.25 m/s，默认演示速度为 2×。路线参数见 `src/data/traffic.js`，模型、步态与门动画见 `src/scene/traffic.js`。
+
+GLB 与 Blender 脚本已为 A、B 楼首层预留 3.4 m 门洞；车流、行人、人行道与感应门由 Three.js 运行时叠加，未烘焙进 GLB。自行导入其他模型时，需要保留相同坐标、门洞位置及通行净空。
 
 ## Blender 工作流
 
@@ -62,6 +67,8 @@ Windows 中未将 Blender 加入 PATH 时，使用实际安装路径：
 ```text
 src/
   data/campus.js               空间、设备、遥测、状态机、疏散模型
+  data/traffic.js              双向车道、人行道、通勤循环与距离采样
+  scene/traffic.js             车辆、人形、感应门、动画与资源回收
   composables/useTwin.js       共享状态、选择联动、控制与持久化
   components/CampusScene.vue   Three.js 沙盘和模型导入
   components/DetailPanel.vue   房间、告警、视频与疏散面板
@@ -73,6 +80,7 @@ blender/generate_campus.py     Blender 建模与 glTF 导出
 scripts/export-data.js        导出统一空间数据
 scripts/export-model.js       导出可直接编辑/导入的标准 GLB
 tests/domain.test.js          空间、遥测、状态机与疏散回归测试
+tests/traffic.test.js         车道间距、行人路径、进出楼、暂停/倍速检查
 docs/接入与数据规范.md          数据契约、算法与真实接入边界
 docs/验收记录.md              自动化检查与浏览器验收记录
 ```

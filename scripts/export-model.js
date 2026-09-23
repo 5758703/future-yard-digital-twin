@@ -25,7 +25,7 @@ box(outdoor,'Reflection pool rim',[20,.25,14],[-4,0,62],'#8fa59d');box(outdoor,'
 const leaves=new THREE.MeshStandardMaterial({color:'#477767',roughness:.9}),crownGeometry=new THREE.IcosahedronGeometry(1.7,1)
 for(let x=-70;x<77;x+=9)for(const z of [-70,76]){if(z===76&&x>13&&x<35)continue;box(outdoor,'Tree trunk',[.4,2.5,.4],[x,1.2,z],'#69694f');const crown=new THREE.Mesh(crownGeometry,leaves);crown.name='Tree canopy';crown.position.set(x,3,z);crown.scale.y=1.3;outdoor.add(crown)}
 for(const [x,z] of [[-27,-30],[-28,-50],[11,-30],[65,-29],[-26,24],[29,29],[35,62],[64,62],[-66,9]]){box(outdoor,'Tree trunk',[.4,2.5,.4],[x,1.2,z],'#69694f');const crown=new THREE.Mesh(crownGeometry,leaves);crown.position.set(x,3,z);crown.scale.y=1.3;outdoor.add(crown)}
-for(let i=0;i<9;i++){box(outdoor,'Parking marking',[2,.03,6],[34+i*4,0,49],'#abbcaf');if(i%3!==0){box(outdoor,'Vehicle body',[1.7,.8,3.6],[34+i*4,.5,49],i%2?'#b8c4bf':'#7b97a1');box(outdoor,'Vehicle cab',[1.5,.5,1.8],[34+i*4,1.1,49],'#416673')}}
+for(let i=0;i<9;i++){box(outdoor,'Parking marking',[2,.03,6],[34+i*4,0,58],'#abbcaf');if(i%3!==0){box(outdoor,'Vehicle body',[1.7,.8,3.6],[34+i*4,.5,58],i%2?'#b8c4bf':'#7b97a1');box(outdoor,'Vehicle cab',[1.5,.5,1.8],[34+i*4,1.1,58],'#416673')}}
 for(const f of facilities.filter(f=>f.type==='hydrant'))box(outdoor,f.id,[.6,1.2,.6],f.position,'#ce785d',{facilityId:f.id})
 box(outdoor,'Security booth',[4,3.3,4],[31,1.5,70],'#8caaa7');box(outdoor,'Gate barrier',[8,.15,.15],[22,1.2,70],'#d2bb83')
 for(const b of buildings){
@@ -36,15 +36,21 @@ for(const b of buildings){
     const meta={buildingId:b.id,floorId,number:n,kind:'floor'}
     box(floor,`${floorId}_slab`,[b.width,.25,b.depth],[0,.2,0],'#b1c0bb',meta)
     for(const side of [-1,1]){
-      box(floor,`${floorId}_facade`,[b.width,2.92,.16],[0,1.8,side*b.depth/2],b.color,meta)
-      box(floor,`${floorId}_windows`,[b.width-.8,1.55,.09],[0,1.8,side*(b.depth/2+.13)],'#406a7c',meta)
+      const entrance = b.type==='office' && n===1 && side===1
+      const sections = entrance ? [-1,1].map(s=>[(b.width-3.4)/2,s*(b.width+3.4)/4]) : [[b.width,0]]
+      for(const [width,x] of sections){
+        box(floor,`${floorId}_facade`,[width,2.92,.16],[x,1.8,side*b.depth/2],b.color,meta)
+        box(floor,`${floorId}_windows`,[width-.4,1.55,.09],[x,1.8,side*(b.depth/2+.13)],'#406a7c',meta)
+      }
+      if(entrance)box(floor,`${floorId}_entrance_lintel`,[3.4,.36,.16],[0,3.08,b.depth/2],b.color,meta)
       box(floor,`${floorId}_side`,[.16,2.92,b.depth],[side*b.width/2,1.8,0],b.color,meta)
-      for(let i=0;i<Math.floor(b.width/2.7);i++)box(floor,`${floorId}_mullion`,[.16,2.92,.14],[-b.width/2+1.2+i*2.7,1.8,side*(b.depth/2+.19)],'#adc0bd',meta)
+      for(let i=0;i<Math.floor(b.width/2.7);i++){const x=-b.width/2+1.2+i*2.7;if(entrance&&Math.abs(x)<1.8)continue;box(floor,`${floorId}_mullion`,[.16,2.92,.14],[x,1.8,side*(b.depth/2+.19)],'#adc0bd',meta)}
     }
     for(const r of rooms.filter(r=>r.floorId===floorId)){
       const metaRoom={...meta,roomId:r.id,kind:'room',area:r.area,use:r.use}
       box(floor,r.id,[r.width-.2,.08,r.depth-.2],[r.x-b.x,.38,r.z-b.z],'#75a39a',metaRoom)
-      box(floor,`${r.id}_partition`,[.12,2.7,r.depth],[r.x-b.x-r.width/2,1.7,r.z-b.z],'#c0ccc0',metaRoom)
+      const vestibule=b.type==='office'&&n===1&&r.z>b.z&&Math.abs(r.x-b.x-r.width/2)<1
+      box(floor,`${r.id}_partition`,[.12,2.7,r.depth-(vestibule?2.2:0)],[r.x-b.x-r.width/2,1.7,r.z-b.z-(vestibule?1.1:0)],'#c0ccc0',metaRoom)
       box(floor,`${r.id}_furniture`,[2,.6,b.type==='residential'?2.5:1.2],[r.x-b.x,.7,r.z-b.z],b.type==='residential'?'#cdd7c3':'#bdae8d',metaRoom)
     }
   }

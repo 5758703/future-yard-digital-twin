@@ -118,15 +118,24 @@ for b in data['buildings']:
         metadata = {'buildingId': b['id'], 'floorId': floor_id, 'kind': 'floor', 'number': floor}
         box(f'{floor_id}_slab', (b['width'], .25, b['depth']), (b['x'], y + .2, b['z']), 'slab', floor_col, metadata)
         for side in [-1, 1]:
-            box(f'{floor_id}_facade_{side}', (b['width'], 2.9, .22), (b['x'], y + 1.8, b['z'] + side * b['depth'] / 2), 'wall', floor_col, metadata)
-            box(f'{floor_id}_glazing_{side}', (b['width'] - .8, 1.5, .08), (b['x'], y + 1.8, b['z'] + side * (b['depth'] / 2 + .14)), 'glass', floor_col, metadata)
+            entrance = b['type'] == 'office' and floor == 1 and side == 1
+            sections = [((b['width'] - 3.4) / 2, s * (b['width'] + 3.4) / 4) for s in [-1, 1]] if entrance else [(b['width'], 0)]
+            for width, x_offset in sections:
+                box(f'{floor_id}_facade_{side}', (width, 2.9, .22), (b['x'] + x_offset, y + 1.8, b['z'] + side * b['depth'] / 2), 'wall', floor_col, metadata)
+                box(f'{floor_id}_glazing_{side}', (width - .4, 1.5, .08), (b['x'] + x_offset, y + 1.8, b['z'] + side * (b['depth'] / 2 + .14)), 'glass', floor_col, metadata)
+            if entrance:
+                box(f'{floor_id}_entrance_lintel', (3.4, .36, .22), (b['x'], y + 3.08, b['z'] + b['depth'] / 2), 'wall', floor_col, metadata)
             box(f'{floor_id}_side_{side}', (.2, 2.9, b['depth']), (b['x'] + side * b['width'] / 2, y + 1.8, b['z']), 'wall', floor_col, metadata)
             for i in range(int(b['width'] / 2.7)):
-                box(f'{floor_id}_mullion', (.16, 2.95, .15), (b['x'] - b['width'] / 2 + 1.2 + i * 2.7, y + 1.8, b['z'] + side * (b['depth'] / 2 + .19)), 'slab', floor_col, metadata)
+                x_offset = -b['width'] / 2 + 1.2 + i * 2.7
+                if entrance and abs(x_offset) < 1.8:
+                    continue
+                box(f'{floor_id}_mullion', (.16, 2.95, .15), (b['x'] + x_offset, y + 1.8, b['z'] + side * (b['depth'] / 2 + .19)), 'slab', floor_col, metadata)
         for r in [r for r in data['rooms'] if r['floorId'] == floor_id]:
             room_meta = {**metadata, 'roomId': r['id'], 'kind': 'room', 'area': r['area'], 'use': r['use']}
             box(r['id'], (r['width'] - .2, .08, r['depth'] - .2), (r['x'], y + .39, r['z']), 'room', floor_col, room_meta)
-            box(f"{r['id']}_partition", (.12, 2.7, r['depth']), (r['x'] - r['width'] / 2, y + 1.7, r['z']), 'wall', floor_col, room_meta)
+            vestibule = b['type'] == 'office' and floor == 1 and r['z'] > b['z'] and abs(r['x'] - b['x'] - r['width'] / 2) < 1
+            box(f"{r['id']}_partition", (.12, 2.7, r['depth'] - (2.2 if vestibule else 0)), (r['x'] - r['width'] / 2, y + 1.7, r['z'] - (1.1 if vestibule else 0)), 'wall', floor_col, room_meta)
             box(f"{r['id']}_furniture", (2, .6, 2.4 if b['type'] == 'residential' else 1.1), (r['x'], y + .7, r['z']), 'wood', floor_col, room_meta)
     height = b['floors'] * data['campus']['floorHeight']
     box(f"{b['id']}_roof", (b['width'] + .4, .35, b['depth'] + .4), (b['x'], height, b['z']), 'slab', building_col, {'buildingId': b['id']})

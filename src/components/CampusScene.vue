@@ -5,13 +5,15 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { buildings, rooms, cameras, facilities, campus, evacuation, getRoom, telemetry } from '../data/campus.js'
 import { useTwin } from '../composables/useTwin.js'
+import { createTraffic } from '../scene/traffic.js'
 
 const { state, selectBuilding, selectFloor, selectRoom, notify, openAlerts } = useTwin()
 const host = ref(null), labels = ref([]), error = ref(''), ready = ref(false)
 const hasImported=ref(false)
 let scene, camera, renderer, controls, observer, frame, world, assets, route, imported, targetPosition, targetLook, lastTime = 0, disposed = false
 let labelNodes = [], clickable = [], picks = [], down = null
-let people=[]
+const trafficRunning = ref(true), commuteMode = ref('mixed'), trafficSpeed = ref(2)
+let traffic, previousFrame = null
 const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2()
 const caption = computed(() => state.evacuation ? '疏散推演 · 虚拟演练' : state.floor ? `${state.floor}F 空间剖切 · 点击房间查看详情` : state.buildingId ? '楼栋分层 · 点击楼层进入' : '院区实景沙盘 · 点击楼栋进入')
 const materials = new Map()
@@ -33,8 +35,7 @@ function makeCampus() {
   const grid = new THREE.GridHelper(240, 48, '#2a4554', '#243b49'); grid.position.y = -2.6; scene.add(grid)
   // Ring roads, a central fire lane and a pedestrian axis.
   for (const [w,d,x,z] of [[166,9,0,-61],[166,9,0,48],[9,116,-79,-4],[9,116,79,-4],[149,8,0,1],[8,109,17,-5],[8,31,23,63]]) box(world,w,.15,d,x,-.1,z,'#354651')
-  for(let x=-73;x<80;x+=8) for(const z of [-61,48,1]) box(world,3,.02,.15,x,.02,z,'#9daea5')
-  for(let z=-52;z<46;z+=8) for(const x of [-79,79]) box(world,.15,.02,3,x,.02,z,'#9daea5')
+  for(let x=-73;x<80;x+=8) box(world,3,.02,.15,x,.02,1,'#9daea5')
   for(let i=0;i<7;i++) { box(world,.8,.02,5,13+i*1.3,.04,1,'#c1cdc0'); box(world,5,.02,.8,23,.04,46+i*1.2,'#c1cdc0') }
   // Landscaped planters frame the buildings.
   for(const b of buildings) { box(world,b.width+5,.25,b.depth+5,b.x,0,b.z,'#82958d'); box(world,b.width+3,.08,b.depth+3,b.x,.17,b.z,'#687e76') }
@@ -48,7 +49,7 @@ function makeCampus() {
   // Reflecting pool and central garden.
   box(world,19,.4,13,-4,.1,62,'#859890'); box(world,17,.15,11,-4,.35,62,'#377e8b',{metalness:.5,roughness:.2})
   for(let i=0;i<3;i++) box(world,.2,.2,10,-10+i*6,.5,62,'#70afba')
-  for(let i=0;i<10;i++) { const x=34+i*4; box(world,2,.03,6,x,.02,49,'#90a299'); if(i%3!==0) { box(world,1.7,.8,3.6,x,.55,49,['#738794','#c1c8bf','#617f88'][i%3]); box(world,1.55,.55,1.8,x,1.17,49,'#34515d') } }
+  for(let i=0;i<10;i++) { const x=34+i*4; box(world,2,.03,6,x,.02,58,'#90a299'); if(i%3!==0) { box(world,1.7,.8,3.6,x,.55,58,['#738794','#c1c8bf','#617f88'][i%3]); box(world,1.55,.55,1.8,x,1.17,58,'#34515d') } }
   // Gate and security booth.
   box(world,4,3.3,4,31,1.7,70,'#879e9f'); box(world,4.4,.3,4.4,31,3.5,70,'#3a5661'); box(world,8,.15,.15,22,1.2,70,'#dbbf7b')
   for(const f of facilities.filter(f=>f.type==='hydrant')) { box(world,.6,1.1,.6,f.position[0],.65,f.position[2],'#e78368'); box(world,1,.2,.25,f.position[0],.9,f.position[2],'#e78368') }
@@ -82,11 +83,17 @@ function addFloor(parent, b, number, y, detailed = false) {
     const load=floorRooms.reduce((n,r)=>n+telemetry(r,0,state.controls[r.id]).power,0)/floorRooms.length
     const density=floorRooms.reduce((n,r)=>n+r.occupants/r.capacity,0)/floorRooms.length
     const tone = state.layer==='energy' ? (load>1.7?'#cd9b69':load>1.2?'#a1ac85':'#679ca9') : state.layer==='people' ? (density>.6?'#d0a46c':density>.4?'#8db29e':'#639ea6') : b.color
-    const body = box(group,b.width-.45,2.92,b.depth-.45,0,1.78,0,tone)
-    body.userData={kind: active?'floor':'building',id:b.id,buildingId:b.id,number}; picks.push(body)
+    const entrance = b.type === 'office' && number === 1
+    const bodies = entrance ? [
+      box(group,b.width-.45,2.92,b.depth-2.65,0,1.78,-1.1,tone),
+      ...[-1,1].map(side=>box(group,(b.width-.45-3.4)/2,2.92,2.2,side*(b.width-.45+3.4)/4,1.78,b.depth/2-1.325,tone)),
+      box(group,3.4,.36,2.2,0,3.06,b.depth/2-1.325,tone),
+    ] : [box(group,b.width-.45,2.92,b.depth-.45,0,1.78,0,tone)]
+    for(const body of bodies){body.userData={kind: active?'floor':'building',id:b.id,buildingId:b.id,number};picks.push(body)}
     for(const side of [-1,1]) {
-      box(group,b.width-.9,1.55,.08,0,1.8,side*(b.depth/2-.15),state.night?'#b6b77f':'#3b6576',{metalness:.48,roughness:.23,emissive:state.night?'#867348':'#102b38',emissiveIntensity:state.night?.65:.1})
-      for(let i=0;i<Math.floor(b.width/2.7);i++) box(group,.16,2.92,.12,-b.width/2+1.2+i*2.7,1.78,side*(b.depth/2-.08),'#a6bbbb')
+      const glazing = entrance && side === 1 ? [-1,1].map(s=>[(b.width-.9-3.4)/2,s*(b.width-.9+3.4)/4]) : [[b.width-.9,0]]
+      for(const [width,x] of glazing) box(group,width,1.55,.08,x,1.8,side*(b.depth/2-.15),state.night?'#b6b77f':'#3b6576',{metalness:.48,roughness:.23,emissive:state.night?'#867348':'#102b38',emissiveIntensity:state.night?.65:.1})
+      for(let i=0;i<Math.floor(b.width/2.7);i++) { const x=-b.width/2+1.2+i*2.7;if(entrance&&side===1&&Math.abs(x)<1.8)continue;box(group,.16,2.92,.12,x,1.78,side*(b.depth/2-.08),'#a6bbbb') }
       box(group,.08,1.45,b.depth-.9,side*(b.width/2-.15),1.8,0,'#476f7e')
       for(let i=0;i<4;i++) box(group,.12,2.92,.2,side*(b.width/2-.08),1.78,-b.depth/2+2+i*4.5,'#a6bbbb')
     }
@@ -96,7 +103,7 @@ function addFloor(parent, b, number, y, detailed = false) {
 }
 function rebuild() {
   if(!scene) return
-  removeGroup(assets); removeGroup(route); assets = new THREE.Group(); scene.add(assets); labelNodes=[]; picks=[];people=[]
+  removeGroup(assets); removeGroup(route); assets = new THREE.Group(); scene.add(assets); labelNodes=[]; picks=[]
   world.visible=(!state.floor || state.evacuation)&&!(imported&&!state.buildingId)
   if(imported) imported.visible=!state.buildingId
   for(const b of buildings) {
@@ -123,10 +130,6 @@ function rebuild() {
     labelNodes.push({id:c.id,kind:'device',text:'监控',sub:c.label,position:new THREE.Vector3(c.position[0],5,c.position[2]),roomId:c.roomId})
   }
   if(state.layer==='people'&&!state.floor){
-    const track=[new THREE.Vector3(23,.8,70),new THREE.Vector3(17,.8,48),new THREE.Vector3(17,.8,1),new THREE.Vector3(-46,.8,1),new THREE.Vector3(-46,.8,-16)]
-    const curve=new THREE.CurvePath();for(let i=1;i<track.length;i++)curve.add(new THREE.LineCurve3(track[i-1],track[i]))
-    const trackLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(track),new THREE.LineDashedMaterial({color:'#82e2cc',dashSize:1.5,gapSize:1}));trackLine.computeLineDistances();assets.add(trackLine)
-    for(let i=0;i<12;i++){const person=new THREE.Mesh(new THREE.SphereGeometry(.6,8,6),mat(i===0?'#edb26c':'#76ddc6',{emissive:'#2c6857',emissiveIntensity:.6}));person.scale.y=1.8;assets.add(person);people.push({mesh:person,curve,offset:i/12})}
     for(const b of buildings){const out=state.visitors.some(v=>v.buildingId===b.id&&v.outside&&v.status==='在院');line(assets,[[b.x-b.width/2-2,.5,b.z-b.depth/2-2],[b.x+b.width/2+2,.5,b.z-b.depth/2-2],[b.x+b.width/2+2,.5,b.z+b.depth/2+2],[b.x-b.width/2-2,.5,b.z+b.depth/2+2],[b.x-b.width/2-2,.5,b.z-b.depth/2-2]],out?'#ff9c62':'#72bca8',.8)}
   }
   if(state.pipes) for(let i=0;i<3;i++) {
@@ -162,9 +165,10 @@ function onUp(e) {
 }
 function render(time) {
   frame=requestAnimationFrame(render)
+  const delta = previousFrame === null ? 0 : (time - previousFrame) / 1000; previousFrame = time
+  traffic?.update(delta,{running:trafficRunning.value,speed:trafficSpeed.value,mode:commuteMode.value,visible:!state.floor&&!state.evacuation})
   if(targetPosition){camera.position.lerp(targetPosition,.065);controls.target.lerp(targetLook,.065);if(camera.position.distanceTo(targetPosition)<.08){targetPosition=null;targetLook=null}}
   controls.autoRotate=state.autoRotate;controls.update();renderer.render(scene,camera)
-  for(const person of people)person.mesh.position.copy(person.curve.getPoint((time/45000+person.offset)%1))
   if(time-lastTime>80){lastTime=time;const width=host.value.clientWidth,height=host.value.clientHeight;const projected=labelNodes.map(l=>{const p=l.position.clone().project(camera);return {...l,x:(p.x+1)/2*width,y:(1-p.y)/2*height,anchorX:(p.x+1)/2*width,anchorY:(1-p.y)/2*height,visible:p.z<1&&p.z>-1&&Math.abs(p.x)<.98&&Math.abs(p.y)<.95}})
     const positioned=[]
     for(const l of projected.filter(l=>l.visible&&l.kind==='building').sort((a,b)=>a.y-b.y)){
@@ -175,6 +179,11 @@ function render(time) {
   }
 }
 function resetView(){flyTo()}
+function focusEntrance(){
+  const b=buildings.find(b=>b.id===state.buildingId&&b.type==='office')||buildings[0]
+  targetPosition=new THREE.Vector3(b.x+12,10,b.z+b.depth/2+22)
+  targetLook=new THREE.Vector3(b.x,1.6,b.z+b.depth/2+2)
+}
 function zoom(value){targetPosition=null;camera.position.sub(controls.target).multiplyScalar(value).add(controls.target)}
 async function importModel(file) {
   if(!file || !file.name.toLowerCase().endsWith('.glb')) { notify('请选择 Blender 导出的 .glb 文件');return }
@@ -201,12 +210,12 @@ onMounted(()=>{
     renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;host.value.prepend(renderer.domElement)
     scene.add(new THREE.HemisphereLight('#d9f1ff','#506b60',2.4));const sun=new THREE.DirectionalLight('#ffedcf',3.3);sun.position.set(-70,120,50);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-125;sun.shadow.camera.right=125;sun.shadow.camera.top=125;sun.shadow.camera.bottom=-125;sun.shadow.camera.far=350;sun.shadow.bias=-.001;scene.add(sun)
     controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.08;controls.maxPolarAngle=Math.PI*.47;controls.minDistance=15;controls.maxDistance=370;controls.target.set(0,0,6);controls.autoRotateSpeed=.35;controls.addEventListener('start',()=>{targetPosition=null;targetLook=null})
-    makeCampus();rebuild();renderer.domElement.addEventListener('pointerdown',onDown);renderer.domElement.addEventListener('pointerup',onUp)
+    makeCampus();traffic=createTraffic();scene.add(traffic.root);rebuild();renderer.domElement.addEventListener('pointerdown',onDown);renderer.domElement.addEventListener('pointerup',onUp)
     observer=new ResizeObserver(()=>{const w=host.value.clientWidth,h=host.value.clientHeight;if(!h||!w)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);flyTo()});observer.observe(host.value)
     ready.value=true;frame=requestAnimationFrame(render)
   }catch(e){error.value='三维视图初始化失败，请启用浏览器硬件加速后刷新。空间树和管理功能仍可使用。';console.error(e)}
 })
-onBeforeUnmount(()=>{disposed=true;cancelAnimationFrame(frame);observer?.disconnect();controls?.dispose();renderer?.domElement.removeEventListener('pointerdown',onDown);renderer?.domElement.removeEventListener('pointerup',onUp);scene?.traverse(o=>{o.geometry?.dispose();if(o.material)for(const m of [o.material].flat()){m.map?.dispose();m.dispose()}});renderer?.dispose();renderer?.forceContextLoss()})
+onBeforeUnmount(()=>{disposed=true;cancelAnimationFrame(frame);observer?.disconnect();controls?.dispose();traffic?.dispose();renderer?.domElement.removeEventListener('pointerdown',onDown);renderer?.domElement.removeEventListener('pointerup',onUp);scene?.traverse(o=>{o.geometry?.dispose();if(o.material)for(const m of [o.material].flat()){m.map?.dispose();m.dispose()}});renderer?.dispose();renderer?.forceContextLoss()})
 </script>
 
 <template>
@@ -222,6 +231,15 @@ onBeforeUnmount(()=>{disposed=true;cancelAnimationFrame(frame);observer?.disconn
       </template>
     </div>
     <div class="scene-caption"><span class="live-dot"></span>{{ caption }}</div>
+    <div v-if="ready && !state.floor && !state.evacuation" class="traffic-controls" aria-label="通勤动画控制">
+      <div class="traffic-title"><span :class="['live-dot', { paused: !trafficRunning }]"/>通勤模拟 <small>双向车流 · 16 辆 / 行人 · 24 人</small></div>
+      <div class="traffic-actions">
+        <select v-model="commuteMode" aria-label="通勤场景"><option value="mixed">双向通勤</option><option value="arrival">上班 · 进入办公楼</option><option value="departure">下班 · 离开办公楼</option></select>
+        <select v-model.number="trafficSpeed" aria-label="动画速度"><option :value="1">1×</option><option :value="2">2×</option><option :value="4">4×</option></select>
+        <button type="button" :aria-label="trafficRunning ? '暂停通勤动画' : '继续通勤动画'" @click="trafficRunning = !trafficRunning">{{ trafficRunning ? '暂停' : '继续' }}</button>
+        <button type="button" aria-label="查看办公楼入口" @click="focusEntrance">入口</button>
+      </div>
+    </div>
     <div class="compass"><span>N</span><i></i><small>北</small></div>
     <div class="scene-scale"><i></i><span>{{ state.floor ? '5 m' : '20 m' }} · 示意比例</span></div>
     <div class="scene-help">左键旋转 <span>·</span> 右键平移 <span>·</span> 滚轮缩放</div>
