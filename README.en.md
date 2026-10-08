@@ -52,6 +52,8 @@
 <a id="preview"></a>
 ## 🎬 Preview
 
+https://github.com/user-attachments/assets/a69c5f0f-ad80-40a6-984d-e992a76f1e7a
+
 <p align="center">
   <img src="https://github.com/user-attachments/assets/7b46d33a-27f9-419d-b04f-0587c42e69c3" width="100%" alt="Future Yard digital twin workspace screenshot one" />
   <img src="https://github.com/user-attachments/assets/853fa67a-368a-4983-bc8c-9373862aca84" width="100%" alt="Future Yard digital twin workspace screenshot two" />
