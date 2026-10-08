@@ -34,7 +34,7 @@ onBeforeUnmount(()=>{clearInterval(interval);window.removeEventListener('keydown
 <template>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="#" @click.prevent="selectBuilding(null);switchModule('overview')"><div class="brand-mark"><Building2 :size="23"/><span></span></div><div><h1>未来院区<span>数字孪生运营中心</span></h1><p>让每一处空间，实时可感知</p></div></a>
+      <a class="brand" href="#" @click.prevent="selectBuilding(null);switchModule('overview')"><img class="brand-logo" src="/brand/logo.svg" width="42" height="42" alt="未来院区 Logo"/><div><h1>未来院区<span>数字孪生运营中心</span></h1><p>让每一处空间，实时可感知</p></div></a>
       <nav class="topnav" aria-label="业务专题"><button v-for="m in modules" :key="m.id" :class="{active:state.module===m.id}" @click="switchModule(m.id)"><component :is="m.icon" :size="16"/>{{m.name}}</button></nav>
       <div class="header-actions"><button class="icon-button notification" title="告警中心" aria-label="打开告警中心" @click="modal='alerts'"><Bell :size="19"/><i v-if="openAlerts.length"></i></button><span class="avatar">运</span></div>
     </header>

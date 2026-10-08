@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">FUTURE YARD — DIGITAL TWIN OPERATIONS CENTER</title>
+  <desc id="desc">Every space. Connected. In view.. 6 buildings / 37 floors / 296 rooms / 2,072 devices. Vue 3 + Three.js + Blender.</desc>
+  <defs><pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse"><path d="M36 0H0v36" stroke="#2a3947" stroke-width="1"/></pattern></defs>
+  <rect width="1200" height="360" rx="18" fill="#101a28"/>
+  <rect x="820" width="380" height="360" fill="url(#grid)"/>
+  <path d="m836 274 125-72 166 95M876 86l178 103V82M808 195l201 116" stroke="#59d0b5" stroke-width="1" opacity=".24"/>
+  <g transform="translate(60 64) scale(1.8)">  <rect x="2" y="2" width="92" height="92" rx="24" fill="#152230"/>
+  <path d="M48 12 80 30v36L48 84 16 66V30Z" stroke="#76b7d5" stroke-width="2" stroke-dasharray="4 5" opacity=".55"/>
+  <path d="m25 38 23-13 23 13-23 13Z" fill="#8cebd6"/>
+  <path d="M25 38v25l23 13V51Z" fill="#59d0b5"/>
+  <path d="M48 51v25l23-13V38Z" fill="#28796e"/>
+  <path d="m33 48 7 4m-7 6 7 4m16-6 7-4m-7 14 7-4" stroke="#152230" stroke-width="3" stroke-linecap="round"/>
+  <path d="M71 38h9V25" stroke="#c1cf96" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="80" cy="22" r="5" fill="#c1cf96" stroke="#152230" stroke-width="2"/>
+</g>
+  <g font-family="'Noto Sans SC','Microsoft YaHei',Arial,sans-serif">
+    <text x="264" y="122" fill="#dce5e9" font-size="48" font-weight="700" letter-spacing="2">FUTURE YARD</text>
+    <text x="266" y="163" fill="#59d0b5" font-size="17" letter-spacing="2">DIGITAL TWIN OPERATIONS CENTER</text>
+    <text x="266" y="212" fill="#9baeba" font-size="20">Every space. Connected. In view.</text>
+    <text x="64" y="287" fill="#dce5e9" font-size="16">6 buildings / 37 floors / 296 rooms / 2,072 devices</text>
+    <text x="64" y="321" fill="#8b9cae" font-size="13" letter-spacing="2">VUE 3 + THREE.JS + BLENDER</text>
+  </g>
+  <g transform="translate(940 85) scale(1.7)">  <rect x="2" y="2" width="92" height="92" rx="24" fill="#152230"/>
+  <path d="M48 12 80 30v36L48 84 16 66V30Z" stroke="#76b7d5" stroke-width="2" stroke-dasharray="4 5" opacity=".55"/>
+  <path d="m25 38 23-13 23 13-23 13Z" fill="#8cebd6"/>
+  <path d="M25 38v25l23 13V51Z" fill="#59d0b5"/>
+  <path d="M48 51v25l23-13V38Z" fill="#28796e"/>
+  <path d="m33 48 7 4m-7 6 7 4m16-6 7-4m-7 14 7-4" stroke="#152230" stroke-width="3" stroke-linecap="round"/>
+  <path d="M71 38h9V25" stroke="#c1cf96" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="80" cy="22" r="5" fill="#c1cf96" stroke="#152230" stroke-width="2"/>
+</g>
+</svg>
